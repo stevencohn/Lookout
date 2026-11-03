@@ -1,0 +1,17 @@
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="Ribbon_Load">
+  <ribbon>
+    <tabs>
+      <tab idMso="TabMail">
+        <group id="LookoutGroup" label="Lookout">
+          <button id="LookoutReviewJunk"
+                  label="Review Junk"
+                  size="large"
+                  imageMso="JunkEmailOptions"
+                  screentip="Review Junk Email"
+                  supertip="Scan the Junk Email folder for suspicious senders and choose what to move to Deleted Items."
+                  onAction="OnReviewJunk"/>
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
