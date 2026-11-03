@@ -19,6 +19,7 @@ namespace Lookout.Office
 		private readonly CheckBox scanOnOpen = new CheckBox { Text = "Scan when the pane opens", AutoSize = true };
 		private readonly DataGridView grid = new DataGridView();
 		private readonly Button resetButton = new Button { Text = "Reset to defaults", AutoSize = true };
+		private readonly Button denylistButton = new Button { Text = "Edit denylist...", AutoSize = true };
 		private readonly Button okButton = new Button
 		{
 			Text = "OK",
@@ -55,6 +56,7 @@ namespace Lookout.Office
 			Populate(current);
 
 			resetButton.Click += (s, e) => Populate(new RuleSettings());
+			denylistButton.Click += (s, e) => SettingsStore.OpenDenylist();
 			okButton.Click += (s, e) => grid.EndEdit();
 			FormClosing += OnFormClosing;
 
@@ -97,7 +99,7 @@ namespace Lookout.Office
 				FlowDirection = FlowDirection.RightToLeft,
 				Padding = new Padding(8)
 			};
-			buttons.Controls.AddRange(new Control[] { cancelButton, okButton, resetButton });
+			buttons.Controls.AddRange(new Control[] { cancelButton, okButton, resetButton, denylistButton });
 
 			Controls.Add(grid);
 			Controls.Add(top);

@@ -111,6 +111,19 @@ namespace Lookout.Core
 
 			if (context is not null)
 			{
+				if (context.Denylist is not null)
+				{
+					foreach (var identity in identities)
+					{
+						var entry = context.Denylist.Match(identity);
+						if (entry is not null)
+						{
+							found.Add(new Assessment(
+								$"[{identity.Label}] On your denylist ({entry})", 5, RuleCatalog.Denylist));
+						}
+					}
+				}
+
 				if (!string.IsNullOrEmpty(context.Subject))
 				{
 					foreach (var rule in TextRule.Subject)
@@ -128,16 +141,21 @@ namespace Lookout.Core
 				}
 
 				found.AddRange(MessageChecks.AssessAuthentication(context.Headers));
+				found.AddRange(MessageChecks.AssessReplyTo(context.Headers, identities));
 			}
 
 			var all = found.Select(settings.Apply).Where(a => a is not null).ToList();
 
 			var score = all.Sum(a => a.Score);
-			var verdict = score >= settings.SuspiciousThreshold ? Verdict.Suspicious
+			return (VerdictFor(score, settings), score, all);
+		}
+
+		/// <summary>Maps a total score to a verdict using the settings' threshold.</summary>
+		public static Verdict VerdictFor(int score, RuleSettings settings)
+		{
+			return score >= settings.SuspiciousThreshold ? Verdict.Suspicious
 				: score > 0 ? Verdict.Uncertain
 				: Verdict.LooksLegit;
-
-			return (verdict, score, all);
 		}
 	}
 }

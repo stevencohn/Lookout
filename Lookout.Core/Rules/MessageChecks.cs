@@ -18,6 +18,9 @@ namespace Lookout.Core.Rules
 
 		/// <summary>Local parts of the user's own mailbox addresses, e.g. "stevencohn".</summary>
 		public IReadOnlyList<string> MailboxNames { get; set; }
+
+		/// <summary>The user's denylist, if any.</summary>
+		public Denylist Denylist { get; set; }
 	}
 
 	/// <summary>Message-level checks: authentication results and subject personalization.</summary>
@@ -84,6 +87,67 @@ namespace Lookout.Core.Rules
 			}
 
 			return results;
+		}
+
+		private static readonly Regex ReplyToHeader = new Regex(
+			@"^Reply-To:(?<value>(?:.*)(?:\r?\n[ \t]+.*)*)",
+			RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+		private static readonly Regex AddressInHeader = new Regex(
+			@"[A-Za-z0-9._%+\-']+@(?<domain>[A-Za-z0-9.\-]+)", RegexOptions.Compiled);
+
+		/// <summary>
+		/// Flags a Reply-To address whose domain is unrelated to every sender identity's domain:
+		/// replies go somewhere other than where the mail claims to come from.
+		/// </summary>
+		public static List<Assessment> AssessReplyTo(string headers, IReadOnlyList<MailIdentity> identities)
+		{
+			var results = new List<Assessment>();
+			if (string.IsNullOrWhiteSpace(headers))
+			{
+				return results;
+			}
+
+			var header = ReplyToHeader.Match(headers);
+			var address = header.Success ? AddressInHeader.Match(header.Groups["value"].Value) : null;
+			if (address is null || !address.Success)
+			{
+				return results;
+			}
+
+			var replyDomain = address.Groups["domain"].Value.TrimEnd('.');
+			var known = false;
+
+			foreach (var identity in identities)
+			{
+				var domain = IdentityChecks.GetDomain(identity.Email);
+				if (domain.Length == 0)
+				{
+					continue;
+				}
+
+				known = true;
+				if (Related(replyDomain, domain))
+				{
+					return results;
+				}
+			}
+
+			if (known)
+			{
+				results.Add(new Assessment(
+					$"[Headers] Reply-To domain ({replyDomain}) differs from the sender's domain", 1, RuleCatalog.ReplyTo));
+			}
+
+			return results;
+		}
+
+		// the same domain, or one is a subdomain of the other
+		private static bool Related(string a, string b)
+		{
+			return a.Equals(b, StringComparison.OrdinalIgnoreCase)
+				|| a.EndsWith("." + b, StringComparison.OrdinalIgnoreCase)
+				|| b.EndsWith("." + a, StringComparison.OrdinalIgnoreCase);
 		}
 
 		/// <summary>

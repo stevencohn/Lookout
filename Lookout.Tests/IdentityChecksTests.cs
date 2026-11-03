@@ -2,6 +2,7 @@
 // Copyright © 2026 Steven M Cohn. All rights reserved.
 //************************************************************************************************
 
+using System.Collections.Generic;
 using System.Linq;
 using Lookout.Core;
 using Lookout.Core.Rules;
@@ -198,6 +199,78 @@ namespace Lookout.Tests
 			Assert.IsTrue(keys.Contains(RuleCatalog.DkimFail));
 			Assert.IsTrue(SenderRule.Default.All(r => keys.Contains(r.Name)));
 			Assert.IsTrue(TextRule.Subject.All(r => keys.Contains(r.Name)));
+		}
+
+		[TestMethod]
+		public void DenylistMatchesDomainSubdomainAndName()
+		{
+			var list = Denylist.Parse("# comment\r\nbad.com\r\n*.worse.org\r\n@evil.net\r\nname:Richard Moore\r\n");
+			Assert.IsFalse(list.IsEmpty);
+
+			Assert.AreEqual("bad.com", list.Match(new MailIdentity("Sender", "x", "a@bad.com")));
+			Assert.AreEqual("bad.com", list.Match(new MailIdentity("Sender", "x", "a@mail.bad.com")));
+			Assert.AreEqual("worse.org", list.Match(new MailIdentity("Sender", "x", "a@worse.org")));
+			Assert.AreEqual("evil.net", list.Match(new MailIdentity("Sender", "x", "a@evil.net")));
+			Assert.AreEqual("name:Richard Moore", list.Match(new MailIdentity("Sender", "richard MOORE", "a@fine.com")));
+
+			Assert.IsNull(list.Match(new MailIdentity("Sender", "x", "a@notbad.com")));
+			Assert.IsNull(list.Match(new MailIdentity("Sender", "Steve", "a@fine.com")));
+			Assert.IsTrue(Denylist.Parse(null).IsEmpty);
+		}
+
+		[TestMethod]
+		public void DenylistHitAloneIsSuspiciousAndCanBeDisabled()
+		{
+			var ids = new[] { new MailIdentity("Sender", "Steve Cohn", "steve@bad.com") };
+			var context = new MessageContext { Denylist = Denylist.Parse("bad.com") };
+
+			var result = Assessor.AssessMessage(ids, context);
+			Assert.AreEqual(Verdict.Suspicious, result.Verdict);
+			Assert.IsTrue(result.Assessments[0].Reason.Contains("denylist"));
+
+			var settings = new RuleSettings();
+			settings.Rules[RuleCatalog.Denylist] = new RuleOverride { Enabled = false };
+			Assert.AreEqual(Verdict.LooksLegit, Assessor.AssessMessage(ids, context, settings).Verdict);
+		}
+
+		[TestMethod]
+		public void ReplyToMismatchDetected()
+		{
+			var ids = new[] { new MailIdentity("Sender", "Shop", "news@shop.com") };
+
+			var other = MessageChecks.AssessReplyTo("Reply-To: <help@elsewhere.ru>\r\nSubject: x\r\n", ids);
+			Assert.AreEqual(1, other.Count);
+			Assert.AreEqual(RuleCatalog.ReplyTo, other[0].Key);
+
+			Assert.AreEqual(0, MessageChecks.AssessReplyTo("Reply-To: Shop <support@shop.com>\r\n", ids).Count);
+			Assert.AreEqual(0, MessageChecks.AssessReplyTo("Reply-To: support@mail.shop.com\r\n", ids).Count);
+			Assert.AreEqual(0, MessageChecks.AssessReplyTo("Subject: no reply-to here\r\n", ids).Count);
+			Assert.AreEqual(0, MessageChecks.AssessReplyTo(null, ids).Count);
+		}
+
+		[TestMethod]
+		public void RepeatedSenderNeedsSeveralUnrelatedDomains()
+		{
+			KeyValuePair<string, string> P(string n, string e) => new KeyValuePair<string, string>(n, e);
+
+			var names = RepeatedSenders.FindNames(new[]
+			{
+				P("Richard Moore", "info@-----mail.aaa.com"),
+				P("Richard Moore", "info@-----mail.bbb.com"),
+				P("Richard Moore", "info@-----mail.ccc.com"),
+				P("Amazon", "a@amazon.com"),
+				P("Amazon", "b@mail.amazon.com"),
+				P("Amazon", "c@news.amazon.com"),
+				P("Cole", "a@x.com"),
+				P("Cole", "b@y.com"),
+			});
+
+			Assert.IsTrue(names.Contains("richard moore"));
+			Assert.IsFalse(names.Contains("amazon"), "subdomains of one domain are one domain");
+			Assert.IsFalse(names.Contains("cole"), "two domains is not enough");
+
+			Assert.AreEqual("example.com", RepeatedSenders.BaseDomain("a.b.example.com"));
+			Assert.AreEqual("example.co.uk", RepeatedSenders.BaseDomain("mail.example.co.uk"));
 		}
 
 		[TestMethod]

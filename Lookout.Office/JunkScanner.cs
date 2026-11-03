@@ -34,10 +34,12 @@ namespace Lookout.Office
 		private readonly List<string> mailboxNames = new List<string>();
 
 		private readonly RuleSettings settings;
+		private readonly Denylist denylist;
 
-		public JunkScanner(Microsoft.Office.Interop.Outlook.Application app, RuleSettings settings)
+		public JunkScanner(Microsoft.Office.Interop.Outlook.Application app, RuleSettings settings, Denylist denylist)
 		{
 			this.settings = settings;
+			this.denylist = denylist;
 			var session = app.Session;
 			try
 			{
@@ -128,7 +130,8 @@ namespace Lookout.Office
 			{
 				Subject = mail.Subject,
 				Headers = GetHeaders(mail),
-				MailboxNames = mailboxNames
+				MailboxNames = mailboxNames,
+				Denylist = denylist
 			}, settings);
 			var onBehalfOf = identities.Count > 1 ? identities[1] : null;
 

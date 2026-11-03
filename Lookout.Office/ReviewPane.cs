@@ -5,8 +5,10 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using Lookout.Core;
+using Lookout.Core.Rules;
 
 namespace Lookout.Office
 {
@@ -32,6 +34,7 @@ namespace Lookout.Office
 		private readonly DataGridView grid = new DataGridView();
 
 		private JunkScanner scanner;
+		private RuleSettings activeSettings = new RuleSettings();
 		private readonly Dictionary<Verdict, int> counts = new Dictionary<Verdict, int>();
 
 		public ReviewPane(Microsoft.Office.Interop.Outlook.Application app)
@@ -118,7 +121,8 @@ namespace Lookout.Office
 			moveButton.Enabled = false;
 			scanButton.Enabled = false;
 
-			scanner = new JunkScanner(app, SettingsStore.Load());
+			activeSettings = SettingsStore.Load();
+			scanner = new JunkScanner(app, activeSettings, SettingsStore.LoadDenylist());
 			progress.Maximum = Math.Max(1, scanner.Total);
 			progress.Value = 0;
 			status.Text = $"Scanning {scanner.Total} items...";
@@ -140,6 +144,7 @@ namespace Lookout.Office
 				scanButton.Enabled = true;
 				moveButton.Enabled = grid.Rows.Count > 0;
 				exportButton.Enabled = scanned.Count > 0;
+				ApplyRepeatedSenders();
 				status.Text = $"Suspicious: {Count(Verdict.Suspicious)}   Uncertain: {Count(Verdict.Uncertain)}   Looks legit: {Count(Verdict.LooksLegit)}";
 				Logger.Info($"Scan complete: {status.Text}");
 				grid.Sort(new SeverityComparer());
@@ -148,6 +153,50 @@ namespace Lookout.Office
 					grid.FirstDisplayedScrollingRowIndex = 0;
 				}
 				SelectSuspicious();
+			}
+		}
+
+		/// <summary>
+		/// Scan-level rule: a display name that arrives from several unrelated domains gets extra
+		/// points on every one of its messages, then the verdicts and the grid are refreshed.
+		/// </summary>
+		private void ApplyRepeatedSenders()
+		{
+			var names = RepeatedSenders.FindNames(scanned.Select(r => new KeyValuePair<string, string>(r.SenderName, r.SenderEmail)));
+			if (names.Count == 0)
+			{
+				return;
+			}
+
+			var finding = activeSettings.Apply(new Assessment(
+				$"[Sender] {RuleCatalog.RepeatedSender}", 2, RuleCatalog.RepeatedSender));
+			if (finding is null)
+			{
+				return;
+			}
+
+			foreach (var row in scanned)
+			{
+				var key = RepeatedSenders.NormalizeName(row.SenderName);
+				if (key is not null && names.Contains(key))
+				{
+					row.Score += finding.Score;
+					row.Reasons = string.IsNullOrEmpty(row.Reasons) ? finding.Reason : row.Reasons + "; " + finding.Reason;
+					row.Verdict = Assessor.VerdictFor(row.Score, activeSettings);
+				}
+			}
+
+			counts.Clear();
+			foreach (var row in scanned)
+			{
+				counts[row.Verdict] = Count(row.Verdict) + 1;
+			}
+
+			foreach (DataGridViewRow gridRow in grid.Rows)
+			{
+				var row = (JunkRow)gridRow.Tag;
+				gridRow.Cells["Verdict"].Value = row.Verdict.ToString();
+				gridRow.Cells["Reasons"].Value = row.Reasons;
 			}
 		}
 

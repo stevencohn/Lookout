@@ -34,6 +34,9 @@ namespace Lookout.Core.Rules
 		public const string SpfFail = "SPF check failed (sending server not authorized)";
 		public const string SpfSoftFail = "SPF soft-failed";
 		public const string DkimFail = "DKIM signature failed";
+		public const string ReplyTo = "Reply-To domain differs from the sender's domain";
+		public const string Denylist = "Sender is on your denylist";
+		public const string RepeatedSender = "Same display name sent from several unrelated domains";
 
 		public static IReadOnlyList<RuleInfo> All { get; } = Build();
 
@@ -47,6 +50,8 @@ namespace Lookout.Core.Rules
 			}
 
 			all.Add(new RuleInfo(CrossCheck, "Sender", 2));
+			all.Add(new RuleInfo(Denylist, "Sender", 5));
+			all.Add(new RuleInfo(RepeatedSender, "Sender", 2));
 
 			foreach (var rule in TextRule.Subject)
 			{
@@ -58,6 +63,7 @@ namespace Lookout.Core.Rules
 			all.Add(new RuleInfo(SpfFail, "Headers", 2));
 			all.Add(new RuleInfo(SpfSoftFail, "Headers", 1));
 			all.Add(new RuleInfo(DkimFail, "Headers", 1));
+			all.Add(new RuleInfo(ReplyTo, "Headers", 1));
 
 			return all;
 		}

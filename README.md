@@ -74,6 +74,7 @@ of" identity (Outlook's `Sender <a@x.com>; on behalf of; Other <b@y.com>` line).
 
 | Rule | Points | What it catches |
 |------|--------|-----------------|
+| Sender is on your denylist | 5 | A domain (or subdomain) or display name you listed in your [denylist](#denylist). Marks the message Suspicious on its own. |
 | Domain label starts or ends with a hyphen | 4 | Invalid DNS syntax, e.g. `info@-----mail.xyz.com` or `x@---Service-abc.com`. Real registrars never allow it, so the domain is machine-generated. |
 | Domain has no dot | 4 | e.g. `7IPFEMF6@FNGNOHNG2AL05U46FM9FJTUM29PW`: it can never resolve on the internet. |
 | Display name has hidden Unicode characters | 3 | Zero-width characters and invisible Unicode "tag" characters stitched into a brand name to defeat spam filters while still rendering normally. |
@@ -83,6 +84,7 @@ of" identity (Outlook's `Sender <a@x.com>; on behalf of; Other <b@y.com>` line).
 | Display name looks like gibberish | 2 | A single unbroken token of random capital letters and digits, e.g. `1ASDFVAS83SF8`. |
 | Email local part looks like gibberish | 2 | The part before the `@` is random characters. |
 | Display name has a look-alike character | 2 | A capital `I`, `0` or `1` standing in for a letter inside a word, e.g. "FormuIa" or "Micr0soft". Names such as McIntosh are excluded. |
+| Same display name from several unrelated domains | 2 | Applied after the scan to every message whose display name arrived from 3 or more different domains (subdomains of one domain count once), e.g. one "Richard Moore" sending from a dozen random hosts. |
 | Sender and "on behalf of" domains differ | 2 | The submitting server and the claimed identity are unrelated domains. Common with legitimate bulk mailers, so it only matters combined with other flags. |
 
 ### Subject rules
@@ -103,6 +105,7 @@ Read from the message's `Authentication-Results` header, which your mail provide
 | SPF check failed | 2 | The sending server is not authorized to send for the domain. |
 | SPF soft-failed | 1 | The server is probably not authorized. |
 | DKIM signature failed | 1 | Ignored if another DKIM signature on the message passed. |
+| Reply-To domain differs | 1 | Replies would go to a domain unrelated to the sender's. Low score because legitimate mailing services do this too. |
 
 These are heuristics. Legitimate mail occasionally trips a rule (for example a mailing list that breaks DKIM), and
 spam occasionally trips none, so always glance at the list before you click Delete. Rules you disagree with can be
@@ -116,7 +119,8 @@ switched off or re-scored in Settings.
 - whether to scan automatically when the pane opens,
 - the on/off switch and score of every rule above.
 
-**Reset to defaults** restores everything. Saving rescans with the new values.
+**Reset to defaults** restores everything. **Edit denylist...** opens your [denylist](#denylist). Saving rescans with
+the new values.
 
 Settings are stored in `%LOCALAPPDATA%\Lookout\settings.conf`, a small text file you can also edit by hand. Only
 rules that differ from their defaults are written:
@@ -129,6 +133,21 @@ Rule=1|5|SPF check failed (sending server not authorized)
 ```
 
 A `Rule` line is `<1 or 0 for on/off>|<score, or - for the default>|<the rule's text>`.
+
+## Denylist
+
+For senders you never want to see, click **Edit denylist...** in the Settings dialog. It opens
+`%LOCALAPPDATA%\Lookout\denylist.txt` in Notepad (created with instructions if needed). One entry per line:
+
+```
+# a domain; also matches its subdomains
+badsender.com
+# a display name, ignoring case
+name:Richard Moore
+```
+
+Save the file and rescan. A match scores 5 by default, enough to make the message Suspicious on its own; change that
+in Settings like any other rule.
 
 ## Logs
 
