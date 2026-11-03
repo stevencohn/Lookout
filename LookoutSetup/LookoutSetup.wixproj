@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="WixToolset.Sdk/7.0.0">
+
+  <PropertyGroup>
+    <!-- x64 package: one MSI serves both 32- and 64-bit Outlook (the add-in is AnyCPU);
+         the registry is written to both views, see Registry.wxs -->
+    <Platform Condition="'$(Platform)' == ''">x64</Platform>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
+    <OutputName>Lookout_$(ProductVersion)_Setup</OutputName>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <!-- ManifestModulus/ManifestExponent: public key of the certificate that signs the VSTO
+         manifests, supplied by build.ps1 for the VSTO Security\Inclusion trust entry -->
+    <DefineConstants>ProductVersion=$(ProductVersion);BinDir=..\Lookout.Addin\bin\$(Configuration);ManifestModulus=$(ManifestModulus);ManifestExponent=$(ManifestExponent)</DefineConstants>
+    <!-- ICE80: the registry-only 32-bit view components (Registry.wxs) sit in the 64-bit install
+         folder group; they own no files, so the directory bitness is irrelevant. -->
+    <SuppressIces>ICE80</SuppressIces>
+    <!-- Accept the WiX v7 OSMF EULA for open-source use. -->
+    <AcceptEula>wix7</AcceptEula>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="7.0.*" />
+  </ItemGroup>
+
+  <!-- Building from the solution (not build.ps1) leaves the signing key empty; the MSI would
+       register an unusable VSTO trust entry. Use build.ps1 to produce a releasable installer. -->
+  <Target Name="WarnNoManifestKey" BeforeTargets="BeforeBuild" Condition="'$(ManifestModulus)' == ''">
+    <Warning Text="ManifestModulus is not set: this MSI will not trust the VSTO manifests. Build it with build.ps1." />
+  </Target>
+
+</Project>

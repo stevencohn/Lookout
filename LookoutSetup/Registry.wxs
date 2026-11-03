@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <!--
+    Registers the VSTO add-in machine-wide for both bitnesses of Outlook. A 64-bit Outlook reads
+    the 64-bit registry view and a 32-bit Outlook reads WOW6432Node, so each key is written twice
+    (Bitness always64 / always32).
+
+    Manifest points at the installed .vsto with "|vstolocal" so Office loads it in place rather
+    than copying it into the ClickOnce cache.
+
+    Inclusion: VSTO only loads a customization whose manifests are signed by a trusted
+    publisher. The Security\Inclusion entry trusts the public key of the signing certificate
+    (ManifestModulus/ManifestExponent, from build.ps1) for this .vsto.
+  -->
+  <Fragment>
+    <ComponentGroup Id="AddInRegistry" Directory="INSTALLFOLDER">
+
+      <Component Id="AddInKey64" Bitness="always64">
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Office\Outlook\Addins\Lookout.Addin"
+                     ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="Description" Value="Lookout - junk email review" Type="string" />
+          <RegistryValue Name="FriendlyName" Value="Lookout" Type="string" />
+          <RegistryValue Name="LoadBehavior" Value="3" Type="integer" KeyPath="yes" />
+          <RegistryValue Name="Manifest" Value="file:///[INSTALLFOLDER]Lookout.Addin.vsto|vstolocal" Type="string" />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="AddInKey32" Bitness="always32">
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Office\Outlook\Addins\Lookout.Addin"
+                     ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="Description" Value="Lookout - junk email review" Type="string" />
+          <RegistryValue Name="FriendlyName" Value="Lookout" Type="string" />
+          <RegistryValue Name="LoadBehavior" Value="3" Type="integer" KeyPath="yes" />
+          <RegistryValue Name="Manifest" Value="file:///[INSTALLFOLDER]Lookout.Addin.vsto|vstolocal" Type="string" />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="InclusionKey64" Bitness="always64">
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\VSTO\Security\Inclusion\{B4E0A9D2-6C31-4A57-8E2F-91D3C5A7F840}"
+                     ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="PublicKey" Type="string" KeyPath="yes"
+                         Value="&lt;RSAKeyValue&gt;&lt;Modulus&gt;$(var.ManifestModulus)&lt;/Modulus&gt;&lt;Exponent&gt;$(var.ManifestExponent)&lt;/Exponent&gt;&lt;/RSAKeyValue&gt;" />
+          <RegistryValue Name="Url" Value="file:///[INSTALLFOLDER]Lookout.Addin.vsto" Type="string" />
+        </RegistryKey>
+      </Component>
+
+      <Component Id="InclusionKey32" Bitness="always32">
+        <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\VSTO\Security\Inclusion\{B4E0A9D2-6C31-4A57-8E2F-91D3C5A7F840}"
+                     ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="PublicKey" Type="string" KeyPath="yes"
+                         Value="&lt;RSAKeyValue&gt;&lt;Modulus&gt;$(var.ManifestModulus)&lt;/Modulus&gt;&lt;Exponent&gt;$(var.ManifestExponent)&lt;/Exponent&gt;&lt;/RSAKeyValue&gt;" />
+          <RegistryValue Name="Url" Value="file:///[INSTALLFOLDER]Lookout.Addin.vsto" Type="string" />
+        </RegistryKey>
+      </Component>
+
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <!--
+    Every file listed in Lookout.Addin.dll.manifest must be installed beside the .vsto, and
+    none may be modified after the build, or VSTO rejects the signed manifests. The files come
+    from the Lookout.Addin build output; BinDir is set by LookoutSetup.wixproj.
+  -->
+  <Fragment>
+    <ComponentGroup Id="AddInFiles" Directory="INSTALLFOLDER">
+      <Component>
+        <File Source="$(var.BinDir)\Lookout.Addin.vsto" />
+      </Component>
+      <Component>
+        <File Source="$(var.BinDir)\Lookout.Addin.dll.manifest" />
+      </Component>
+      <Component>
+        <File Source="$(var.BinDir)\Lookout.Addin.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.BinDir)\Lookout.Office.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.BinDir)\Lookout.Core.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.BinDir)\Microsoft.Office.Interop.Outlook.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.BinDir)\Office.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.BinDir)\Microsoft.Office.Tools.Common.v4.0.Utilities.dll" />
+      </Component>
+      <Component>
+        <File Source="$(var.BinDir)\Microsoft.Office.Tools.Outlook.v4.0.Utilities.dll" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>

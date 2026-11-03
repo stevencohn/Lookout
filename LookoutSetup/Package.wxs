@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="Lookout"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="River"
+           UpgradeCode="{7C1E5B3A-4D2F-4F8A-9B6E-2A5D8C0F1E73}"
+           Scope="perMachine">
+
+    <SummaryInformation Description="An Outlook add-in that reviews the Junk Email folder"
+                        Keywords="Outlook Lookout junk add-in" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Require .NET Framework 4.8 -->
+    <Property Id="NETFRAMEWORK48">
+      <RegistrySearch Id="NetFx48Search"
+                      Root="HKLM"
+                      Key="SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full"
+                      Name="Release"
+                      Type="raw"
+                      Bitness="always32" />
+    </Property>
+    <Launch Condition="Installed OR NETFRAMEWORK48"
+            Message="Lookout requires .NET Framework 4.8 or later. Please install it from https://dotnet.microsoft.com/download/dotnet-framework/net48" />
+
+    <!-- Require the Visual Studio Tools for Office runtime (installed with Microsoft 365 Apps) -->
+    <Property Id="VSTORUNTIME">
+      <RegistrySearch Id="VstoRuntimeSearch"
+                      Root="HKLM"
+                      Key="SOFTWARE\Microsoft\VSTO Runtime Setup\v4R"
+                      Name="Version"
+                      Type="raw"
+                      Bitness="always32" />
+    </Property>
+    <Launch Condition="Installed OR VSTORUNTIME"
+            Message="Lookout requires the Visual Studio 2010 Tools for Office Runtime, which is installed with Microsoft Office. Install it from https://aka.ms/vstor-redist and run this setup again." />
+
+    <Property Id="ARPHELPLINK" Value="https://github.com/stevencohn/Lookout" />
+    <Property Id="ARPCONTACT" Value="Steven M Cohn" />
+    <Property Id="ARPCOMMENTS" Value="Reviews the Outlook Junk Email folder for suspicious senders" />
+
+    <!-- C:\Program Files\River\Lookout -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="ManufacturerDir" Name="River">
+        <Directory Id="INSTALLFOLDER" Name="Lookout" />
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="ProductFeature" Title="Lookout" Level="1">
+      <ComponentGroupRef Id="AddInFiles" />
+      <ComponentGroupRef Id="AddInRegistry" />
+    </Feature>
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <ui:WixUI Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="Resources\license.rtf" />
+
+  </Package>
+</Wix>

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.11.12328.437 stable
+VisualStudioVersion = 18.11.12328.437
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lookout.Core", "Lookout.Core\Lookout.Core.csproj", "{2B74FD5F-E88B-4CFA-B7F1-7824471025EB}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lookout.Office", "Lookout.Office\Lookout.Office.csproj", "{45ED0BCD-9247-4A7F-B6C7-3A672E337200}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lookout.Addin", "Lookout.Addin\Lookout.Addin.csproj", "{C0D62801-B8C2-49D8-B52B-81F0E93C7458}"
+EndProject
+Project("{B7DD6F7E-DEF8-4E67-B5B7-07EF123DB6F0}") = "LookoutSetup", "LookoutSetup\LookoutSetup.wixproj", "{B81EC554-6084-417A-B18C-05EC1E21EE94}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,6 +71,18 @@ Global
 		{C0D62801-B8C2-49D8-B52B-81F0E93C7458}.Release|x64.Build.0 = Release|Any CPU
 		{C0D62801-B8C2-49D8-B52B-81F0E93C7458}.Release|x86.ActiveCfg = Release|Any CPU
 		{C0D62801-B8C2-49D8-B52B-81F0E93C7458}.Release|x86.Build.0 = Release|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Debug|x64.Build.0 = Debug|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Debug|x86.Build.0 = Debug|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Release|x64.ActiveCfg = Release|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Release|x64.Build.0 = Release|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Release|x86.ActiveCfg = Release|Any CPU
+		{B81EC554-6084-417A-B18C-05EC1E21EE94}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
