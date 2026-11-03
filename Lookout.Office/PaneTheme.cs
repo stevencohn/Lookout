@@ -4,6 +4,7 @@
 
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -94,6 +95,71 @@ namespace Lookout.Office
 			grid.ColumnHeadersDefaultCellStyle.ForeColor = text;
 			grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = panel;
 			grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = text;
+
+			if (dark)
+			{
+				DarkenScrollBars(grid);
+				if (root is Form form)
+				{
+					DarkenTitleBar(form);
+				}
+			}
+		}
+
+		[DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+		private static extern int SetWindowTheme(IntPtr hwnd, string subAppName, string subIdList);
+
+		[DllImport("dwmapi.dll")]
+		private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+		/// <summary>
+		/// Gives the grid and its scroll bars the dark "Explorer" visual style. The scroll bars are
+		/// child controls of the grid whose handles may not exist yet, so apply as each is created.
+		/// </summary>
+		private static void DarkenScrollBars(DataGridView grid)
+		{
+			void apply(Control control)
+			{
+				if (control.IsHandleCreated)
+				{
+					SetWindowTheme(control.Handle, "DarkMode_Explorer", null);
+				}
+			}
+
+			void hook(Control control)
+			{
+				control.HandleCreated += (s, e) => apply(control);
+				apply(control);
+			}
+
+			hook(grid);
+			foreach (Control child in grid.Controls)
+			{
+				if (child is ScrollBar)
+				{
+					hook(child);
+				}
+			}
+		}
+
+		/// <summary>Switches the dialog's title bar to dark (Windows 10 20H1 and later).</summary>
+		private static void DarkenTitleBar(Form form)
+		{
+			void apply()
+			{
+				var on = 1;
+				// attribute 20 on current Windows, 19 on early Windows 10 builds
+				if (DwmSetWindowAttribute(form.Handle, 20, ref on, sizeof(int)) != 0)
+				{
+					DwmSetWindowAttribute(form.Handle, 19, ref on, sizeof(int));
+				}
+			}
+
+			form.HandleCreated += (s, e) => apply();
+			if (form.IsHandleCreated)
+			{
+				apply();
+			}
 		}
 
 		private static void ApplyToChildren(Control parent, Color back, Color text, Color panel, Color line)
