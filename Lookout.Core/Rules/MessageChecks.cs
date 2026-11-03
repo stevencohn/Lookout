@@ -66,21 +66,21 @@ namespace Lookout.Core.Rules
 
 			if (dmarc == "fail")
 			{
-				results.Add(new Assessment("[Headers] DMARC check failed", 3));
+				results.Add(new Assessment($"[Headers] {RuleCatalog.DmarcFail}", 3, RuleCatalog.DmarcFail));
 			}
 
 			if (spf == "fail")
 			{
-				results.Add(new Assessment("[Headers] SPF check failed (sending server not authorized)", 2));
+				results.Add(new Assessment($"[Headers] {RuleCatalog.SpfFail}", 2, RuleCatalog.SpfFail));
 			}
 			else if (spf == "softfail")
 			{
-				results.Add(new Assessment("[Headers] SPF soft-failed", 1));
+				results.Add(new Assessment($"[Headers] {RuleCatalog.SpfSoftFail}", 1, RuleCatalog.SpfSoftFail));
 			}
 
 			if (dkimFail && !dkimPass)
 			{
-				results.Add(new Assessment("[Headers] DKIM signature failed", 1));
+				results.Add(new Assessment($"[Headers] {RuleCatalog.DkimFail}", 1, RuleCatalog.DkimFail));
 			}
 
 			return results;

@@ -11,7 +11,7 @@ namespace Lookout.Office
 {
 	/// <summary>
 	/// Writes scan results to CSV using the same columns as the LINQPad script's report,
-	/// so the two can be diffed. Rows are ordered Suspicious, Uncertain, LooksLegit.
+	/// so the two can be diffed. Rows are ordered most severe first: verdict, then score, then newest.
 	/// </summary>
 	internal static class JunkCsv
 	{
@@ -25,6 +25,7 @@ namespace Lookout.Office
 		{
 			var sorted = rows
 				.OrderByDescending(r => r.Verdict)
+				.ThenByDescending(r => r.Score)
 				.ThenByDescending(r => r.Received);
 
 			using (var writer = new StreamWriter(path, false, new UTF8Encoding(true)))

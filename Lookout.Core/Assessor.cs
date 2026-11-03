@@ -18,14 +18,19 @@ namespace Lookout.Core
 
 	public sealed class Assessment
 	{
-		public Assessment(string reason, int score)
+		/// <param name="reason">Text shown to the user; may include a label prefix or details.</param>
+		/// <param name="score">Points this finding contributes.</param>
+		/// <param name="key">Stable rule key used by settings; defaults to the reason.</param>
+		public Assessment(string reason, int score, string key = null)
 		{
 			Reason = reason;
 			Score = score;
+			Key = key ?? reason;
 		}
 
 		public string Reason { get; }
 		public int Score { get; }
+		public string Key { get; }
 	}
 
 	/// <summary>One identity on a message: the Sender or the "on behalf of" identity.</summary>
@@ -45,7 +50,7 @@ namespace Lookout.Core
 
 	public static class Assessor
 	{
-		public const int SuspiciousThreshold = 3;
+		public const int DefaultSuspiciousThreshold = 3;
 
 		public static List<Assessment> AssessIdentity(MailIdentity identity, IEnumerable<SenderRule> rules = null)
 		{
@@ -74,27 +79,35 @@ namespace Lookout.Core
 					&& !string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
 				{
 					results.Add(new Assessment(
-						$"Sender domain ({a}) does not match On-behalf-of domain ({b})", 2));
+						$"Sender domain ({a}) does not match On-behalf-of domain ({b})", 2, RuleCatalog.CrossCheck));
 				}
 			}
 
 			return results;
 		}
 
-		/// <summary>Runs all rules on every identity plus the cross-check and rolls up a verdict.</summary>
+		/// <summary>
+		/// Runs all rules on every identity plus the message-level checks, applies the user's
+		/// settings (rules switched off or re-scored) and rolls up a verdict.
+		/// </summary>
 		public static (Verdict Verdict, int Score, List<Assessment> Assessments) AssessMessage(
-			IReadOnlyList<MailIdentity> identities, MessageContext context = null, IEnumerable<SenderRule> rules = null)
+			IReadOnlyList<MailIdentity> identities,
+			MessageContext context = null,
+			RuleSettings settings = null,
+			IEnumerable<SenderRule> rules = null)
 		{
-			var all = new List<Assessment>();
+			settings = settings ?? new RuleSettings();
+
+			var found = new List<Assessment>();
 			foreach (var identity in identities)
 			{
 				foreach (var a in AssessIdentity(identity, rules))
 				{
-					all.Add(new Assessment($"[{identity.Label}] {a.Reason}", a.Score));
+					found.Add(new Assessment($"[{identity.Label}] {a.Reason}", a.Score, a.Key));
 				}
 			}
 
-			all.AddRange(AssessCrossCheck(identities));
+			found.AddRange(AssessCrossCheck(identities));
 
 			if (context is not null)
 			{
@@ -104,21 +117,23 @@ namespace Lookout.Core
 					{
 						if (rule.Matches(context.Subject))
 						{
-							all.Add(new Assessment($"[Subject] {rule.Name}", rule.Score));
+							found.Add(new Assessment($"[Subject] {rule.Name}", rule.Score, rule.Name));
 						}
 					}
 
 					if (MessageChecks.SubjectContainsMailboxName(context.Subject, context.MailboxNames))
 					{
-						all.Add(new Assessment("[Subject] Contains your own mailbox name (bulk-mail personalization)", 3));
+						found.Add(new Assessment($"[Subject] {RuleCatalog.MailboxName}", 3, RuleCatalog.MailboxName));
 					}
 				}
 
-				all.AddRange(MessageChecks.AssessAuthentication(context.Headers));
+				found.AddRange(MessageChecks.AssessAuthentication(context.Headers));
 			}
 
+			var all = found.Select(settings.Apply).Where(a => a is not null).ToList();
+
 			var score = all.Sum(a => a.Score);
-			var verdict = score >= SuspiciousThreshold ? Verdict.Suspicious
+			var verdict = score >= settings.SuspiciousThreshold ? Verdict.Suspicious
 				: score > 0 ? Verdict.Uncertain
 				: Verdict.LooksLegit;
 

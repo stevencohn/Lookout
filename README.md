@@ -76,13 +76,22 @@ namespace Lookout.Addin
 ## Behavior
 
 Review Junk opens the pane. Scan reads Junk in batches of 25 on the UI thread. Suspicious rows are pre-checked.
-Nothing moves until you click **Move selected to Deleted Items** and confirm. It is a move, not a permanent delete:
+Nothing is deleted until you click **Delete** and confirm. It moves messages to Deleted Items; it is not a permanent delete:
 Outlook.com/M365 mailboxes block permanent delete through classic MAPI.
+
+## Settings
+
+The **Settings...** button in the pane edits the Suspicious threshold, whether to scan when the pane opens, and
+each rule's on/off switch and score. Saving rescans with the new values. They are stored in
+`%LOCALAPPDATA%\Lookout\settings.conf`, a small text file you can also edit by hand. Only rules that differ from
+their defaults are written (`Rule=<1|0>|<score or ->|<rule text>`). Moves and scans are logged to
+`%LOCALAPPDATA%\Lookout\lookout.log`.
 
 ## Adding a rule
 
 Add an entry to `SenderRule.Default` in `Lookout.Core/Rules/SenderRule.cs`, backed by a check in `IdentityChecks`,
-and add a test.
+and add a test. The rule is listed in the Settings dialog automatically; message-level checks (headers, cross-check,
+mailbox name) also need a key constant in `RuleCatalog`.
 
 ## Tests
 

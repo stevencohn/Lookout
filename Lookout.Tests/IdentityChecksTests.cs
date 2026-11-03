@@ -117,6 +117,89 @@ namespace Lookout.Tests
 			Assert.AreEqual(0, MessageChecks.AssessAuthentication(null).Count);
 		}
 
+		private static readonly MailIdentity[] HyphenSender =
+		{
+			new MailIdentity("Sender", "Steve Cohn", "steve@-bad.com")
+		};
+
+		[TestMethod]
+		public void DisabledRuleIsIgnored()
+		{
+			Assert.AreEqual(Verdict.Suspicious, Assessor.AssessMessage(HyphenSender).Verdict);
+
+			var settings = new RuleSettings();
+			settings.Rules["Domain label starts or ends with a hyphen (invalid DNS label syntax)"] =
+				new RuleOverride { Enabled = false };
+
+			var result = Assessor.AssessMessage(HyphenSender, null, settings);
+			Assert.AreEqual(Verdict.LooksLegit, result.Verdict);
+			Assert.AreEqual(0, result.Assessments.Count);
+		}
+
+		[TestMethod]
+		public void ScoreOverrideAndThresholdChangeVerdict()
+		{
+			var settings = new RuleSettings();
+			settings.Rules["Domain label starts or ends with a hyphen (invalid DNS label syntax)"] =
+				new RuleOverride { Score = 1 };
+			Assert.AreEqual(Verdict.Uncertain, Assessor.AssessMessage(HyphenSender, null, settings).Verdict);
+
+			var strict = new RuleSettings { SuspiciousThreshold = 5 };
+			Assert.AreEqual(Verdict.Uncertain, Assessor.AssessMessage(HyphenSender, null, strict).Verdict);
+		}
+
+		[TestMethod]
+		public void HeaderRuleCanBeDisabledByKey()
+		{
+			var ids = new[] { new MailIdentity("Sender", "Steve Cohn", "steve@example.com") };
+			var context = new MessageContext { Headers = "Authentication-Results: dmarc=fail header.from=x.com\r\n" };
+
+			Assert.AreEqual(Verdict.Suspicious, Assessor.AssessMessage(ids, context).Verdict);
+
+			var settings = new RuleSettings();
+			settings.Rules[RuleCatalog.DmarcFail] = new RuleOverride { Enabled = false };
+			Assert.AreEqual(Verdict.LooksLegit, Assessor.AssessMessage(ids, context, settings).Verdict);
+		}
+
+		[TestMethod]
+		public void SettingsRoundTripAndOnlyWriteChanges()
+		{
+			var settings = new RuleSettings { SuspiciousThreshold = 4, ScanOnOpen = false };
+			settings.Rules["Rule A"] = new RuleOverride { Enabled = false };
+			settings.Rules["Rule B"] = new RuleOverride { Score = 7 };
+			settings.Rules["Rule C"] = new RuleOverride(); // default: not written
+
+			var text = settings.ToText();
+			Assert.IsFalse(text.Contains("Rule C"));
+
+			var parsed = RuleSettings.Parse(text);
+			Assert.AreEqual(4, parsed.SuspiciousThreshold);
+			Assert.IsFalse(parsed.ScanOnOpen);
+			Assert.IsFalse(parsed.Rules["Rule A"].Enabled);
+			Assert.AreEqual(7, parsed.Rules["Rule B"].Score);
+			Assert.IsFalse(parsed.Rules.ContainsKey("Rule C"));
+		}
+
+		[TestMethod]
+		public void BadSettingsTextFallsBackToDefaults()
+		{
+			var parsed = RuleSettings.Parse("garbage\nSuspiciousThreshold=-2\nScanOnOpen=maybe\nRule=oops\n");
+			Assert.AreEqual(Assessor.DefaultSuspiciousThreshold, parsed.SuspiciousThreshold);
+			Assert.IsTrue(parsed.ScanOnOpen);
+			Assert.AreEqual(0, parsed.Rules.Count);
+		}
+
+		[TestMethod]
+		public void CatalogCoversEveryProducedRuleKey()
+		{
+			var keys = RuleCatalog.All.Select(r => r.Key).ToList();
+			Assert.AreEqual(keys.Count, keys.Distinct().Count(), "duplicate rule keys");
+			Assert.IsTrue(keys.Contains(RuleCatalog.CrossCheck));
+			Assert.IsTrue(keys.Contains(RuleCatalog.DkimFail));
+			Assert.IsTrue(SenderRule.Default.All(r => keys.Contains(r.Name)));
+			Assert.IsTrue(TextRule.Subject.All(r => keys.Contains(r.Name)));
+		}
+
 		[TestMethod]
 		public void ParseNameAndEmail()
 		{

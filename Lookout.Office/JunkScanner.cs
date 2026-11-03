@@ -33,8 +33,11 @@ namespace Lookout.Office
 		private int next = 1;
 		private readonly List<string> mailboxNames = new List<string>();
 
-		public JunkScanner(Microsoft.Office.Interop.Outlook.Application app)
+		private readonly RuleSettings settings;
+
+		public JunkScanner(Microsoft.Office.Interop.Outlook.Application app, RuleSettings settings)
 		{
+			this.settings = settings;
 			var session = app.Session;
 			try
 			{
@@ -126,7 +129,7 @@ namespace Lookout.Office
 				Subject = mail.Subject,
 				Headers = GetHeaders(mail),
 				MailboxNames = mailboxNames
-			});
+			}, settings);
 			var onBehalfOf = identities.Count > 1 ? identities[1] : null;
 
 			return new JunkRow

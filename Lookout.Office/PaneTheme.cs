@@ -21,6 +21,19 @@ namespace Lookout.Office
 		private static readonly Color DarkLine = Color.FromArgb(70, 70, 70);
 		private static readonly Color DarkSelect = Color.FromArgb(52, 86, 140);
 
+		/// <summary>The font used by the pane and the settings dialog.</summary>
+		public static Font CreateFont()
+		{
+			return new Font("Segoe UI", 10f);
+		}
+
+		/// <summary>Sizes grid rows and headers to the control's font.</summary>
+		public static void FitGridToFont(DataGridView grid)
+		{
+			grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+			grid.RowTemplate.Height = grid.Font.Height + 10;
+		}
+
 		public static bool IsDark()
 		{
 			try

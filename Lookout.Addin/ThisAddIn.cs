@@ -28,7 +28,7 @@ namespace Lookout.Addin
 
 			pane.Visible = !pane.Visible;
 
-			if (pane.Visible)
+			if (pane.Visible && SettingsStore.Load().ScanOnOpen)
 			{
 				reviewPane.ScanIfIdle();
 			}
