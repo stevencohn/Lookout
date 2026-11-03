@@ -23,9 +23,15 @@ namespace Lookout.Office
 		private const string PrSentRepresentingEmail =
 			"http://schemas.microsoft.com/mapi/proptag/0x0065001E";
 
+		// PR_TRANSPORT_MESSAGE_HEADERS: the raw internet headers, including
+		// Authentication-Results (SPF/DKIM/DMARC).
+		private const string PrTransportHeaders =
+			"http://schemas.microsoft.com/mapi/proptag/0x007D001E";
+
 		private MAPIFolder junk;
 		private Items items;
 		private int next = 1;
+		private readonly List<string> mailboxNames = new List<string>();
 
 		public JunkScanner(Microsoft.Office.Interop.Outlook.Application app)
 		{
@@ -35,10 +41,44 @@ namespace Lookout.Office
 				junk = session.GetDefaultFolder(OlDefaultFolders.olFolderJunk);
 				items = junk.Items;
 				Total = items.Count;
+				LoadMailboxNames(session);
 			}
 			finally
 			{
 				Marshal.ReleaseComObject(session);
+			}
+		}
+
+		/// <summary>Local parts of every account's SMTP address, lower-cased.</summary>
+		private void LoadMailboxNames(NameSpace session)
+		{
+			var accounts = session.Accounts;
+			try
+			{
+				foreach (Account account in accounts)
+				{
+					try
+					{
+						var smtp = account.SmtpAddress;
+						var at = smtp?.IndexOf('@') ?? -1;
+						if (at > 0)
+						{
+							mailboxNames.Add(smtp.Substring(0, at).ToLowerInvariant());
+						}
+					}
+					catch (COMException)
+					{
+						// account without an SMTP address
+					}
+					finally
+					{
+						Marshal.ReleaseComObject(account);
+					}
+				}
+			}
+			finally
+			{
+				Marshal.ReleaseComObject(accounts);
 			}
 		}
 
@@ -78,10 +118,15 @@ namespace Lookout.Office
 			return rows;
 		}
 
-		private static JunkRow Assess(MailItem mail)
+		private JunkRow Assess(MailItem mail)
 		{
 			var identities = GetIdentities(mail);
-			var result = Assessor.AssessMessage(identities);
+			var result = Assessor.AssessMessage(identities, new MessageContext
+			{
+				Subject = mail.Subject,
+				Headers = GetHeaders(mail),
+				MailboxNames = mailboxNames
+			});
 			var onBehalfOf = identities.Count > 1 ? identities[1] : null;
 
 			return new JunkRow
@@ -120,6 +165,23 @@ namespace Lookout.Office
 			}
 
 			return identities;
+		}
+
+		private static string GetHeaders(MailItem mail)
+		{
+			var accessor = mail.PropertyAccessor;
+			try
+			{
+				return accessor.GetProperty(PrTransportHeaders) as string ?? string.Empty;
+			}
+			catch (COMException)
+			{
+				return string.Empty;
+			}
+			finally
+			{
+				Marshal.ReleaseComObject(accessor);
+			}
 		}
 
 		private static string GetOnBehalfOfEmail(MailItem mail)

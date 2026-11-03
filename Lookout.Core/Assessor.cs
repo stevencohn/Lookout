@@ -83,7 +83,7 @@ namespace Lookout.Core
 
 		/// <summary>Runs all rules on every identity plus the cross-check and rolls up a verdict.</summary>
 		public static (Verdict Verdict, int Score, List<Assessment> Assessments) AssessMessage(
-			IReadOnlyList<MailIdentity> identities, IEnumerable<SenderRule> rules = null)
+			IReadOnlyList<MailIdentity> identities, MessageContext context = null, IEnumerable<SenderRule> rules = null)
 		{
 			var all = new List<Assessment>();
 			foreach (var identity in identities)
@@ -95,6 +95,27 @@ namespace Lookout.Core
 			}
 
 			all.AddRange(AssessCrossCheck(identities));
+
+			if (context is not null)
+			{
+				if (!string.IsNullOrEmpty(context.Subject))
+				{
+					foreach (var rule in TextRule.Subject)
+					{
+						if (rule.Matches(context.Subject))
+						{
+							all.Add(new Assessment($"[Subject] {rule.Name}", rule.Score));
+						}
+					}
+
+					if (MessageChecks.SubjectContainsMailboxName(context.Subject, context.MailboxNames))
+					{
+						all.Add(new Assessment("[Subject] Contains your own mailbox name (bulk-mail personalization)", 3));
+					}
+				}
+
+				all.AddRange(MessageChecks.AssessAuthentication(context.Headers));
+			}
 
 			var score = all.Sum(a => a.Score);
 			var verdict = score >= SuspiciousThreshold ? Verdict.Suspicious

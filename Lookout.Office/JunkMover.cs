@@ -16,30 +16,34 @@ namespace Lookout.Office
 	public static class JunkMover
 	{
 		public static int MoveToDeletedItems(
-			Microsoft.Office.Interop.Outlook.Application app, IEnumerable<string> entryIds)
+			Microsoft.Office.Interop.Outlook.Application app, IEnumerable<JunkRow> rows)
 		{
 			var moved = 0;
 			var session = app.Session;
 
 			try
 			{
-				foreach (var id in entryIds)
+				foreach (var row in rows)
 				{
 					object item = null;
 					try
 					{
-						item = session.GetItemFromID(id);
+						item = session.GetItemFromID(row.EntryId);
 						if (item is MailItem mail)
 						{
 							mail.UnRead = false;
 							mail.Save(); // persist before Delete
 							mail.Delete();
 							moved++;
+							Logger.Info($"Moved to Deleted Items: [{row.Verdict}/{row.Score}] " +
+								$"\"{row.Subject}\" from {row.SenderName} <{row.SenderEmail}> " +
+								$"received {row.Received:yyyy-MM-dd HH:mm}; {row.Reasons}");
 						}
 					}
-					catch (COMException)
+					catch (COMException exc)
 					{
 						// leave this item where it is and continue
+						Logger.Error($"Failed to move \"{row.Subject}\" from {row.SenderEmail}", exc);
 					}
 					finally
 					{

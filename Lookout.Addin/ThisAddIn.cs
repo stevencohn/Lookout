@@ -10,6 +10,7 @@ namespace Lookout.Addin
 	public partial class ThisAddIn
 	{
 		private CustomTaskPane pane;
+		private ReviewPane reviewPane;
 
 		protected override Microsoft.Office.Core.IRibbonExtensibility CreateRibbonExtensibilityObject()
 		{
@@ -20,11 +21,17 @@ namespace Lookout.Addin
 		{
 			if (pane is null)
 			{
-				pane = CustomTaskPanes.Add(new ReviewPane(Application), "Lookout");
+				reviewPane = new ReviewPane(Application);
+				pane = CustomTaskPanes.Add(reviewPane, "Lookout");
 				pane.Width = 600;
 			}
 
 			pane.Visible = !pane.Visible;
+
+			if (pane.Visible)
+			{
+				reviewPane.ScanIfIdle();
+			}
 		}
 
 		private void ThisAddIn_Startup(object sender, System.EventArgs e)

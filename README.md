@@ -87,5 +87,7 @@ and add a test.
 ## Tests
 
 ```powershell
-dotnet test
+dotnet test Lookout.Tests
 ```
+
+(`dotnet test` at the solution level also tries to build the VSTO project, which needs MSBuild from Visual Studio.)

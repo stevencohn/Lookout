@@ -86,6 +86,49 @@ namespace Lookout.Core.Rules
 		}
 
 		/// <summary>
+		/// A non-TLD domain label that looks machine-generated: 8+ letters/digits that mix
+		/// lower case, digits and two or more upper-case letters after the first character
+		/// (e.g. "7ahYJKxf2u"; real domains are lower case), a long all-caps run with several
+		/// digits, or that read as gibberish.
+		/// </summary>
+		public static bool DomainHasRandomLabel(string email)
+		{
+			var domain = GetDomain(email);
+			if (string.IsNullOrEmpty(domain))
+			{
+				return false;
+			}
+
+			var labels = domain.Split('.');
+			for (var i = 0; i < labels.Length - 1; i++)
+			{
+				if (IsRandomLabel(labels[i].Trim('-')))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		private static bool IsRandomLabel(string label)
+		{
+			if (label.Length < 8 || !Regex.IsMatch(label, "^[A-Za-z0-9]+$"))
+			{
+				return false;
+			}
+
+			var hasDigit = label.Any(char.IsDigit);
+			var hasLower = label.Any(char.IsLower);
+			var upperAfterFirst = label.Skip(1).Count(char.IsUpper);
+
+			// long all-caps run with several digits, e.g. "EJ745A48FU5C0WZB5EUEZ2XZQ8Q7"
+			var allCapsWithDigits = !hasLower && label.Length >= 12 && label.Count(char.IsDigit) >= 3;
+
+			return (hasDigit && hasLower && upperAfterFirst >= 2) || allCapsWithDigits || LooksLikeGibberish(label);
+		}
+
+		/// <summary>
 		/// Unicode Tags block (U+E0000-E007F) and zero-width/format characters
 		/// stitched into a name to defeat string-matching filters.
 		/// </summary>
@@ -148,6 +191,74 @@ namespace Lookout.Core.Rules
 			var vowelRatio = (double)vowels / trimmed.Length;
 
 			return hasDigit && hasUpper && vowelRatio < 0.2;
+		}
+
+		/// <summary>
+		/// A single word mixing Latin letters with Greek or Cyrillic letters, e.g. a Cyrillic
+		/// "а" inside "Paypal". Such look-alike characters defeat string-matching filters.
+		/// </summary>
+		public static bool HasMixedScriptWord(string text)
+		{
+			if (string.IsNullOrEmpty(text))
+			{
+				return false;
+			}
+
+			var latin = false;
+			var other = false;
+
+			foreach (var c in text)
+			{
+				if (char.IsLetter(c))
+				{
+					if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+					{
+						latin = true;
+					}
+					else if ((c >= 0x0370 && c <= 0x03FF) || (c >= 0x0400 && c <= 0x04FF))
+					{
+						other = true;
+					}
+				}
+				else
+				{
+					if (latin && other)
+					{
+						return true;
+					}
+
+					latin = false;
+					other = false;
+				}
+			}
+
+			return latin && other;
+		}
+
+		private static readonly Regex WordToken = new Regex(@"[A-Za-z0-9]+", RegexOptions.Compiled);
+		private static readonly Regex LookalikeInWord = new Regex(@"[a-z][I01][a-z]", RegexOptions.Compiled);
+		private static readonly Regex McMacName = new Regex(@"^(Mc|Mac)[A-Z]", RegexOptions.Compiled);
+
+		/// <summary>
+		/// A capital I, zero or one sandwiched between lower-case letters, e.g. "FormuIa" or
+		/// "Micr0soft": a letter swapped for a look-alike. Names like McIntosh are excluded.
+		/// </summary>
+		public static bool HasLookalikeCharacters(string text)
+		{
+			if (string.IsNullOrEmpty(text))
+			{
+				return false;
+			}
+
+			foreach (Match token in WordToken.Matches(text))
+			{
+				if (!McMacName.IsMatch(token.Value) && LookalikeInWord.IsMatch(token.Value))
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		/// <summary>Splits "Display Name &lt;email&gt;" into name and email.</summary>

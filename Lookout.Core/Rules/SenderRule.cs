@@ -48,6 +48,18 @@ namespace Lookout.Core.Rules
 			new SenderRule(
 				"Email local-part looks like random gibberish, not a real mailbox name", 2,
 				(name, email) => IdentityChecks.LooksLikeGibberish(IdentityChecks.GetLocalPart(email))),
+
+			new SenderRule(
+				"Domain has a random-looking label (machine-generated hostname)", 3,
+				(name, email) => IdentityChecks.DomainHasRandomLabel(email)),
+
+			new SenderRule(
+				"Display name mixes Latin with Greek/Cyrillic look-alike letters", 3,
+				(name, email) => IdentityChecks.HasMixedScriptWord(name)),
+
+			new SenderRule(
+				"Display name has a look-alike character inside a word (I, 0 or 1 for a letter)", 2,
+				(name, email) => IdentityChecks.HasLookalikeCharacters(name)),
 		};
 	}
 }

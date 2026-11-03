@@ -24,6 +24,8 @@ namespace Lookout.Office
 		private readonly Button scanButton = new Button { Text = "Scan", AutoSize = true };
 		private readonly Button selectButton = new Button { Text = "Select suspicious", AutoSize = true };
 		private readonly Button moveButton = new Button { Text = "Move selected to Deleted Items", AutoSize = true, Enabled = false };
+		private readonly Button exportButton = new Button { Text = "Export CSV", AutoSize = true, Enabled = false };
+		private readonly List<JunkRow> scanned = new List<JunkRow>();
 		private readonly ProgressBar progress = new ProgressBar { Dock = DockStyle.Top, Height = 8 };
 		private readonly Label status = new Label { Dock = DockStyle.Top, AutoSize = false, Height = 22, TextAlign = ContentAlignment.MiddleLeft };
 		private readonly DataGridView grid = new DataGridView();
@@ -39,13 +41,14 @@ namespace Lookout.Office
 			scanButton.Click += (s, e) => StartScan();
 			selectButton.Click += (s, e) => SelectSuspicious();
 			moveButton.Click += (s, e) => MoveSelected();
+			exportButton.Click += (s, e) => ExportCsv();
 			timer.Tick += (s, e) => ScanNextBatch();
 		}
 
 		private void BuildLayout()
 		{
 			var buttons = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = true };
-			buttons.Controls.AddRange(new Control[] { scanButton, selectButton, moveButton });
+			buttons.Controls.AddRange(new Control[] { scanButton, selectButton, moveButton, exportButton });
 
 			grid.Dock = DockStyle.Fill;
 			grid.AllowUserToAddRows = false;
@@ -69,12 +72,23 @@ namespace Lookout.Office
 			PaneTheme.Apply(this, grid);
 		}
 
+		/// <summary>Starts a scan unless one is already running; called when the pane is shown.</summary>
+		public void ScanIfIdle()
+		{
+			if (!timer.Enabled)
+			{
+				StartScan();
+			}
+		}
+
 		private void StartScan()
 		{
 			timer.Stop();
 			scanner?.Dispose();
 			grid.Rows.Clear();
 			counts.Clear();
+			scanned.Clear();
+			exportButton.Enabled = false;
 			moveButton.Enabled = false;
 			scanButton.Enabled = false;
 
@@ -99,7 +113,9 @@ namespace Lookout.Office
 				timer.Stop();
 				scanButton.Enabled = true;
 				moveButton.Enabled = grid.Rows.Count > 0;
+				exportButton.Enabled = scanned.Count > 0;
 				status.Text = $"Suspicious: {Count(Verdict.Suspicious)}   Uncertain: {Count(Verdict.Uncertain)}   Looks legit: {Count(Verdict.LooksLegit)}";
+				Logger.Info($"Scan complete: {status.Text}");
 				SelectSuspicious();
 			}
 		}
@@ -112,6 +128,7 @@ namespace Lookout.Office
 		private void AddRow(JunkRow row)
 		{
 			counts[row.Verdict] = Count(row.Verdict) + 1;
+			scanned.Add(row);
 
 			var sender = $"{row.SenderName} <{row.SenderEmail}>";
 			var onBehalfOf = string.IsNullOrEmpty(row.OnBehalfOfName) && string.IsNullOrEmpty(row.OnBehalfOfEmail)
@@ -120,6 +137,33 @@ namespace Lookout.Office
 
 			var index = grid.Rows.Add(false, row.Verdict.ToString(), row.Subject, sender, onBehalfOf, row.Received.ToString("g"), row.Reasons);
 			grid.Rows[index].Tag = row;
+		}
+
+		/// <summary>Exports every row from the last scan, including ones already moved.</summary>
+		private void ExportCsv()
+		{
+			using (var dialog = new SaveFileDialog
+			{
+				Title = "Export scan results",
+				Filter = "CSV files (*.csv)|*.csv",
+				FileName = $"lookout-junk-{DateTime.Now:yyyyMMdd-HHmm}.csv"
+			})
+			{
+				if (dialog.ShowDialog(this) != DialogResult.OK)
+				{
+					return;
+				}
+
+				try
+				{
+					JunkCsv.Write(dialog.FileName, scanned);
+					status.Text = $"Exported {scanned.Count} rows to {dialog.FileName}";
+				}
+				catch (System.IO.IOException exc)
+				{
+					MessageBox.Show(exc.Message, "Lookout", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+				}
+			}
 		}
 
 		private void SelectSuspicious()
@@ -156,13 +200,14 @@ namespace Lookout.Office
 				return;
 			}
 
-			var ids = new List<string>();
+			var junkRows = new List<JunkRow>();
 			foreach (var gridRow in chosen)
 			{
-				ids.Add(((JunkRow)gridRow.Tag).EntryId);
+				junkRows.Add((JunkRow)gridRow.Tag);
 			}
 
-			var moved = JunkMover.MoveToDeletedItems(app, ids);
+			var moved = JunkMover.MoveToDeletedItems(app, junkRows);
+			Logger.Info($"Move requested for {junkRows.Count}, moved {moved}");
 
 			foreach (var gridRow in chosen)
 			{
