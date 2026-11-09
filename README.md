@@ -82,7 +82,7 @@ of" identity (Outlook's `Sender <a@x.com>; on behalf of; Other <b@y.com>` line).
 | Display name mixes Latin with Greek/Cyrillic | 3 | A look-alike letter from another alphabet inside a word, e.g. a Cyrillic "а" in "Paypal". |
 | Domain has an all-numeric label | 2 | e.g. `foo.32652322.com`: not how registered domains look. |
 | Display name looks like gibberish | 2 | A single unbroken token of random capital letters and digits, e.g. `1ASDFVAS83SF8`. |
-| Email local part looks like gibberish | 2 | The part before the `@` is random characters. |
+| Email local part looks like gibberish | 2 | The part before the `@` is random characters: either a digit-laden token of capitals with few vowels, or a letters-only string of 10+ characters that keeps flipping between upper and lower case, e.g. `VqGOhGwHciSmVDG@...`. |
 | Display name has a look-alike character | 2 | A capital `I`, `0` or `1` standing in for a letter inside a word, e.g. "FormuIa" or "Micr0soft". Names such as McIntosh are excluded. |
 | Same display name from several unrelated domains | 2 | Applied after the scan to every message whose display name arrived from 3 or more different domains (subdomains of one domain count once), e.g. one "Richard Moore" sending from a dozen random hosts. |
 | Sender and "on behalf of" domains differ | 2 | The submitting server and the claimed identity are unrelated domains. Common with legitimate bulk mailers, so it only matters combined with other flags. |
