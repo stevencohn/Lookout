@@ -47,7 +47,11 @@ namespace Lookout.Core.Rules
 
 			new SenderRule(
 				"Email local-part looks like random gibberish, not a real mailbox name", 2,
-				(name, email) => IdentityChecks.LooksLikeGibberish(IdentityChecks.GetLocalPart(email))),
+				(name, email) =>
+					{
+						var local = IdentityChecks.GetLocalPart(email);
+						return IdentityChecks.LooksLikeGibberish(local) || IdentityChecks.LooksLikeRandomMixedCase(local);
+					}),
 
 			new SenderRule(
 				"Domain has a random-looking label (machine-generated hostname)", 3,

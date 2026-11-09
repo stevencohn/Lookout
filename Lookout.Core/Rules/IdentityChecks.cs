@@ -194,6 +194,39 @@ namespace Lookout.Core.Rules
 		}
 
 		/// <summary>
+		/// A letters-only token of 10+ characters that changes between lower and upper case at
+		/// least five times with four or more capitals, e.g. "VqGOhGwHciSmVDG". Ordinary camel-case
+		/// names such as "McDonaldJr" have fewer capitals.
+		/// </summary>
+		public static bool LooksLikeRandomMixedCase(string text)
+		{
+			if (string.IsNullOrWhiteSpace(text))
+			{
+				return false;
+			}
+
+			var trimmed = text.Trim();
+
+			if (trimmed.Length < 10 || !Regex.IsMatch(trimmed, "^[A-Za-z]+$"))
+			{
+				return false;
+			}
+
+			var changes = 0;
+			for (var i = 1; i < trimmed.Length; i++)
+			{
+				if (char.IsUpper(trimmed[i]) != char.IsUpper(trimmed[i - 1]))
+				{
+					changes++;
+				}
+			}
+
+			var uppers = trimmed.Count(char.IsUpper);
+
+			return changes >= 5 && uppers >= 4;
+		}
+
+		/// <summary>
 		/// A single word mixing Latin letters with Greek or Cyrillic letters, e.g. a Cyrillic
 		/// "а" inside "Paypal". Such look-alike characters defeat string-matching filters.
 		/// </summary>

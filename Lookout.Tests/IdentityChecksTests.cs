@@ -57,6 +57,33 @@ namespace Lookout.Tests
 		}
 
 		[TestMethod]
+		public void RandomMixedCaseDetected()
+		{
+			foreach (var local in new[]
+			{
+				"VqGOhGwHciSmVDG", "DCgTAduZxmbyGcI", "ZIVXWDFXzRjWfFx",
+				"pXCVVhzKTurOXzU", "IvLWzzlgxRMvwqa", "zVohKFhcKEtOcWI"
+			})
+			{
+				Assert.IsTrue(IdentityChecks.LooksLikeRandomMixedCase(local), local);
+			}
+
+			foreach (var local in new[] { "steve", "john.smith", "johnSmith", "McDonaldJr", "Amazon", "noreply" })
+			{
+				Assert.IsFalse(IdentityChecks.LooksLikeRandomMixedCase(local), local);
+			}
+		}
+
+		[TestMethod]
+		public void RandomLocalPartWithReplyToMismatchIsSuspicious()
+		{
+			var ids = new[] { new MailIdentity("Sender", "x", "VqGOhGwHciSmVDG@y1jk.trqdfionsbs.sbs") };
+			var context = new MessageContext { Headers = "Reply-To: <help@elsewhere.ru>\r\n" };
+
+			Assert.AreEqual(Verdict.Suspicious, Assessor.AssessMessage(ids, context).Verdict);
+		}
+
+		[TestMethod]
 		public void MixedScriptDetected()
 		{
 			Assert.IsTrue(IdentityChecks.HasMixedScriptWord("Pаypal"));  // Cyrillic a
