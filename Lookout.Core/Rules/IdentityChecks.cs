@@ -64,6 +64,25 @@ namespace Lookout.Core.Rules
 			return false;
 		}
 
+		private static readonly System.Collections.Generic.HashSet<string> LowReputationTlds =
+			new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
+			{
+				"shop", "site", "space", "website", "sbs"
+			};
+
+		/// <summary>The domain ends in a cheap TLD that is heavily abused for spam.</summary>
+		public static bool DomainHasLowReputationTld(string email)
+		{
+			var domain = GetDomain(email);
+			var dot = domain.LastIndexOf('.');
+			if (dot < 0 || dot == domain.Length - 1)
+			{
+				return false;
+			}
+
+			return LowReputationTlds.Contains(domain.Substring(dot + 1));
+		}
+
 		/// <summary>A non-TLD label made only of digits.</summary>
 		public static bool DomainHasAllDigitLabel(string email)
 		{

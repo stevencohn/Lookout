@@ -58,6 +58,10 @@ namespace Lookout.Core.Rules
 				(name, email) => IdentityChecks.DomainHasRandomLabel(email)),
 
 			new SenderRule(
+				"Domain uses a TLD heavily abused by spam (.shop, .site, .space, .website, .sbs)", 2,
+				(name, email) => IdentityChecks.DomainHasLowReputationTld(email)),
+
+			new SenderRule(
 				"Display name mixes Latin with Greek/Cyrillic look-alike letters", 3,
 				(name, email) => IdentityChecks.HasMixedScriptWord(name)),
 

@@ -15,7 +15,7 @@ Builds the Lookout add-in and its MSI installer.
 Release (default) or Debug.
 
 .PARAMETER Version
-Product version of the MSI, e.g. 1.0.0 (default). Raise it for upgrades.
+Product version of the MSI, e.g. 1.1.0 (default). Raise it for upgrades.
 
 .PARAMETER SkipTests
 Skip running Lookout.Tests.
@@ -27,7 +27,7 @@ The VS-generated temporary key has none.
 param (
 	[ValidateSet('Release', 'Debug')]
 	[string] $Configuration = 'Release',
-	[string] $Version = '1.0.0',
+	[string] $Version = '1.1.0',
 	[switch] $SkipTests,
 	[string] $CertPassword = ''
 )

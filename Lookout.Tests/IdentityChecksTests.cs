@@ -30,6 +30,21 @@ namespace Lookout.Tests
 		}
 
 		[TestMethod]
+		public void LowReputationTldDetected()
+		{
+			Assert.IsTrue(IdentityChecks.DomainHasLowReputationTld("x@graflow.shop"));
+			Assert.IsTrue(IdentityChecks.DomainHasLowReputationTld("x@a.b.sbs"));
+			Assert.IsTrue(IdentityChecks.DomainHasLowReputationTld("x@FOO.SITE"));
+			Assert.IsTrue(IdentityChecks.DomainHasLowReputationTld("x@y.space"));
+			Assert.IsTrue(IdentityChecks.DomainHasLowReputationTld("x@z.website"));
+			Assert.IsFalse(IdentityChecks.DomainHasLowReputationTld("x@foo.com"));
+			Assert.IsFalse(IdentityChecks.DomainHasLowReputationTld("x@shop.com"));
+			Assert.IsFalse(IdentityChecks.DomainHasLowReputationTld("x@website"));
+			Assert.IsFalse(IdentityChecks.DomainHasLowReputationTld("no-at-sign"));
+			Assert.IsFalse(IdentityChecks.DomainHasLowReputationTld("x@foo.shopping"));
+		}
+
+		[TestMethod]
 		public void NoDotDetected()
 		{
 			Assert.IsTrue(IdentityChecks.DomainHasNoDot("7IPFEMF6@FNGNOHNG2AL05U46FM9FJTUM29PW"));

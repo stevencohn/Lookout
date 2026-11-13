@@ -6,7 +6,7 @@
          the registry is written to both views, see Registry.wxs -->
     <Platform Condition="'$(Platform)' == ''">x64</Platform>
     <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
-    <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">1.1.0</ProductVersion>
     <OutputName>Lookout_$(ProductVersion)_Setup</OutputName>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <!-- ManifestModulus/ManifestExponent: public key of the certificate that signs the VSTO

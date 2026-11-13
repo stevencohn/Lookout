@@ -80,6 +80,7 @@ of" identity (Outlook's `Sender <a@x.com>; on behalf of; Other <b@y.com>` line).
 | Display name has hidden Unicode characters | 3 | Zero-width characters and invisible Unicode "tag" characters stitched into a brand name to defeat spam filters while still rendering normally. |
 | Domain has a random-looking label | 3 | Machine-generated hostnames such as `7ahYJKxf2u` (mixed case plus digits) or a long all-caps run with several digits. Real domains are lower case. |
 | Display name mixes Latin with Greek/Cyrillic | 3 | A look-alike letter from another alphabet inside a word, e.g. a Cyrillic "а" in "Paypal". |
+| Domain uses a spam-heavy TLD | 2 | `.shop`, `.site`, `.space`, `.website` or `.sbs`. Cheap TLDs favored by spammers, but legitimate senders use them too, so it only matters combined with other flags. |
 | Domain has an all-numeric label | 2 | e.g. `foo.32652322.com`: not how registered domains look. |
 | Display name looks like gibberish | 2 | A single unbroken token of random capital letters and digits, e.g. `1ASDFVAS83SF8`. |
 | Email local part looks like gibberish | 2 | The part before the `@` is random characters: either a digit-laden token of capitals with few vowels, or a letters-only string of 10+ characters that keeps flipping between upper and lower case, e.g. `VqGOhGwHciSmVDG@...`. |
